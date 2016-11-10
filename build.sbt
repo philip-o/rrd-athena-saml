@@ -1,4 +1,4 @@
-name := """play-getting-started"""
+name := """rrd-athena-saml"""
 
 version := "1.0-SNAPSHOT"
 
