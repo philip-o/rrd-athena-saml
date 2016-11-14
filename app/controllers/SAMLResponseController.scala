@@ -148,7 +148,7 @@ trait SAMLResponseController extends Controller {
     val issuer = createIssuer(issuerID)
     response.getAssertions.add(createAssertion(issuer, user ,returnAddress, requestID))
     response.setIssuer(createIssuer(issuerID))
-    response.setID(System.currentTimeMillis().toString)
+    response.setID(UUID.randomUUID.toString)
     response.setDestination(returnAddress)
     response.setIssueInstant(new DateTime())
     if(!requestID.isEmpty)
@@ -180,7 +180,7 @@ trait SAMLResponseController extends Controller {
   private def createAssertion(issuer: Issuer, user : String, returnAddress : String, requestID : Option[String]) : Assertion = {
     val currentTime = new DateTime()
     val samlAssertion = create[Assertion](Assertion.DEFAULT_ELEMENT_NAME)
-    samlAssertion.setID(System.currentTimeMillis().toString)
+    samlAssertion.setID(UUID.randomUUID.toString)
     samlAssertion.setVersion(SAMLVersion.VERSION_20)
     samlAssertion.setIssuer(issuer)
     samlAssertion.setIssueInstant(currentTime)
