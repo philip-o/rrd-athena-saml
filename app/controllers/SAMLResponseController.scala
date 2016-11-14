@@ -55,7 +55,13 @@ trait SAMLResponseController extends Controller {
       Logger.info(s"User $user sent in request")
       if(!requestID.isEmpty)
         Logger.info(s"RequestID ${requestID.get} provided")
-      Ok(createSAMLResponse(entityID,redirectURL,requestID, user))
+      val url = request.body.asFormUrlEncoded.flatMap(_.get("url")).flatMap(_.headOption)
+      val resp = createSAMLResponse(entityID,redirectURL,requestID, user)
+      url match {
+        case Some(address) => Logger.info(s"Redirecting to url $address")
+          Redirect(address, Map("SAMLResponse" -> Seq(resp)))
+        case None => Ok(resp)
+      }
   }
 
   def loadMetadata(metadataPath: String, entityID: String): EntityDescriptor = {
@@ -161,8 +167,8 @@ trait SAMLResponseController extends Controller {
   }
 
   private def buildStatus(status : String) : org.opensaml.saml2.core.Status = {
-    val builder = new StatusBuilder().buildObject()
-    val statCode = new StatusCodeBuilder().buildObject()
+    val builder = create[org.opensaml.saml2.core.Status](org.opensaml.saml2.core.Status.DEFAULT_ELEMENT_NAME)
+    val statCode = create[StatusCode](StatusCode.DEFAULT_ELEMENT_NAME)
     statCode.setValue(status)
     builder.setStatusCode(statCode)
     builder
@@ -186,16 +192,16 @@ trait SAMLResponseController extends Controller {
     samlAssertion.setVersion(SAMLVersion.VERSION_20)
     samlAssertion.setIssuer(issuer)
     samlAssertion.setIssueInstant(currentTime)
-    val subject = new SubjectBuilder().buildObject()
-    val nameId = new NameIDBuilder().buildObject()
+    val subject = create[Subject](Subject.DEFAULT_ELEMENT_NAME)
+    val nameId = create[NameID](NameID.DEFAULT_ELEMENT_NAME)
     nameId.setValue(user)
     nameId.setSPNameQualifier(returnAddress)
     nameId.setFormat(NameIdentifier.FORMAT_ATTRIB_NAME)
     subject.setNameID(nameId)
 
-    val subjectConfirmation = new SubjectConfirmationBuilder().buildObject()
+    val subjectConfirmation = create[SubjectConfirmation](SubjectConfirmation.DEFAULT_ELEMENT_NAME)
     subjectConfirmation.setMethod("urn:oasis:names:tc:SAML:2.0:cm:bearer")
-    val subjectConfirmationData = new SubjectConfirmationDataBuilder().buildObject()
+    val subjectConfirmationData = create[SubjectConfirmationData](SubjectConfirmationData.DEFAULT_ELEMENT_NAME)
     subjectConfirmationData.setRecipient(returnAddress)
     subjectConfirmationData.setNotOnOrAfter(currentTime.plusMinutes(5))
     if(!requestID.isEmpty)
@@ -204,21 +210,21 @@ trait SAMLResponseController extends Controller {
     subject.getSubjectConfirmations().add(subjectConfirmation)
     samlAssertion.setSubject(subject)
 
-    val audienceRestriction = new AudienceRestrictionBuilder().buildObject()
-    val issuerAudience = new AudienceBuilder().buildObject()
+    val audienceRestriction = create[AudienceRestriction](AudienceRestriction.DEFAULT_ELEMENT_NAME)
+    val issuerAudience = create[Audience](Audience.DEFAULT_ELEMENT_NAME)
     issuerAudience.setAudienceURI(loadConfig("saml.idp.sp"))
     audienceRestriction.getAudiences().add(issuerAudience)
-    val conditions = new ConditionsBuilder().buildObject()
+    val conditions = create[Conditions](Conditions.DEFAULT_ELEMENT_NAME)
     conditions.setNotBefore(currentTime)
     conditions.setNotOnOrAfter(currentTime.plusMinutes(5))
     conditions.getAudienceRestrictions().add(audienceRestriction)
     samlAssertion.setConditions(conditions)
 
-    val authStmt = new AuthnStatementBuilder().buildObject()
+    val authStmt = create[AuthnStatement](AuthnStatement.DEFAULT_ELEMENT_NAME)
     authStmt.setAuthnInstant(new DateTime())
 
-    val authContext = new AuthnContextBuilder().buildObject()
-    val authCtxClassRef = new AuthnContextClassRefBuilder().buildObject()
+    val authContext = create[AuthnContext](AuthnContext.DEFAULT_ELEMENT_NAME)
+    val authCtxClassRef = create[AuthnContextClassRef](AuthnContextClassRef.DEFAULT_ELEMENT_NAME)
     authCtxClassRef.setAuthnContextClassRef(AuthnContext.PASSWORD_AUTHN_CTX)
     authContext.setAuthnContextClassRef(authCtxClassRef)
     authStmt.setAuthnContext(authContext)
