@@ -75,6 +75,7 @@ trait SAMLResponseController extends Controller {
     val resp = xml.asInstanceOf[Response]
     validator.validate(resp.getSignature)
     validator.validate(resp.getAssertions.get(0).getSignature)
+    Signer.signObject(resp.getAssertions.get(0).getSignature)
     val schemaValidator = Configuration.getValidatorSuite("saml2-core-schema-validator")
     schemaValidator.validate(xml)
     val specValidator = Configuration.getValidatorSuite("saml2-core-spec-validator");
@@ -109,7 +110,8 @@ trait SAMLResponseController extends Controller {
   private def signResponse(response : Response, signingCert : String, signingKey : String) = {
     val signature = createSignature(signingCert,signingKey)
     response.setSignature(signature)
-    response.getAssertions.get(0).setSignature(createSignature(signingCert,signingKey))
+    val assertionSignature = createSignature(signingCert,signingKey)
+    response.getAssertions.get(0).setSignature(assertionSignature)
     Logger.info("Signature set on SAML response and Assertion")
     signAndCompress(response,signature)
   }
