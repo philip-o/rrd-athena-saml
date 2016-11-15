@@ -59,7 +59,7 @@ trait SAMLResponseController extends Controller {
       val resp = createSAMLResponse(entityID,redirectURL,requestID, user)
       url match {
         case Some(address) => Logger.info(s"Redirecting to url $address")
-          Redirect(address, Map("SAMLResponse" -> Seq(resp)))
+          Redirect(address, Map("samlResponse" -> Seq(compressAndEncodeToB64(resp))))
         case None => Ok(resp)
       }
   }
